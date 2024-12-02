@@ -26,6 +26,30 @@ void UStickyCamComponent::BeginPlay()
 	PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 }
 
+void UStickyCamComponent::SetNewPointAfterSetTime(AStickyCamPoint* NewPoint, bool bIsTransient, EReturnType ReturnType, float BlendTime, EViewTargetBlendFunction BlendFunction)
+{
+	if (!bIsTransient)
+	{
+		// Set LastPoint before ViewTarget changes
+		LastPoint = Cast<AStickyCamPoint>(PlayerController->GetViewTarget());
+	}
+
+	if (!PlayerController->IsLookInputIgnored())
+	{
+		PlayerController->SetIgnoreLookInput(true);
+	}
+
+	double OldViewTargetRotYaw = PlayerController->GetViewTarget()->GetActorRotation().Yaw;
+
+	PlayerController->SetViewTargetWithBlend(NewPoint, BlendTime, BlendFunction);
+
+	double NewViewTargetRotYaw = PlayerController->GetViewTarget()->GetActorRotation().Yaw;
+
+	// It looks like NewViewTargetRotYaw - OldViewTargetRotYaw just works? @TODO THE MATHS DOES NOT WORK! The Maths works!
+	FRotator NewControlRotation = FRotator(PlayerController->GetControlRotation().Pitch, /*PlayerController->GetControlRotation().Yaw*/ NewViewTargetRotYaw, PlayerController->GetControlRotation().Roll);
+	PlayerController->SetControlRotation(NewControlRotation);
+}
+
 
 // Called every frame
 void UStickyCamComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -35,37 +59,66 @@ void UStickyCamComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	// ...
 }
 
-void UStickyCamComponent::SetCamCompAsActiveCam(float BlendTime, EViewTargetBlendFunction BlendFunction)
+void UStickyCamComponent::SetCamCompAsActiveCam(float BlendTime = 0, EViewTargetBlendFunction BlendFunction = EViewTargetBlendFunction::VTBlend_Linear)
 {
-	// Does this work?
 	if (PlayerController->IsLookInputIgnored())
 	{
 		PlayerController->ResetIgnoreLookInput();
-		UE_LOG(LogTemp, Warning, TEXT("Look input unlocked"));
 	}
 	
-	PlayerController->SetViewTargetWithBlend(GetOwner(), BlendTime);
+	PlayerController->SetViewTargetWithBlend(GetOwner(), BlendTime, BlendFunction);
 }
 
-void UStickyCamComponent::SetNewPoint(AStickyCamPoint* NewPoint, float BlendTime, EViewTargetBlendFunction BlendFunction)
+void UStickyCamComponent::SetNewPoint(AStickyCamPoint* NewPoint, EReturnType ReturnType, float TimeLimit, float BlendTime, EViewTargetBlendFunction BlendFunction)
 {
-	// Does this work?
+	if (TimeLimit != 0)
+	{
+		FTimerHandle UnusedHandle;
+		FTimerDelegate TimerDel;
+
+		switch (ReturnType)
+		{
+		case EReturnType::None:
+			UE_LOG(LogTemp, Warning, TEXT("StickyCam must return to a camera if there is a time limit"));
+			break;
+		case EReturnType::TransientNone:
+			UE_LOG(LogTemp, Warning, TEXT("StickyCam must return to a camera if there is a time limit"));
+			break;
+		case EReturnType::LastCam:
+			TimerDel.BindUFunction(this, FName("SetNewPointAfterSetTime"), LastPoint, ReturnType, BlendTime, BlendFunction);
+			break;
+		case EReturnType::TransientLastCam:
+			TimerDel.BindUFunction(this, FName("SetNewPointAfterSetTime"), LastPoint, ReturnType, BlendTime, BlendFunction);
+			break;
+		case EReturnType::FollowCam:
+			TimerDel.BindUFunction(this, FName("SetCamCompAsActiveCam"), 0, BlendTime, BlendFunction);
+			break;
+		case EReturnType::TransientFollowCam:
+			TimerDel.BindUFunction(this, FName("SetCamCompAsActiveCam"), 1, BlendTime, BlendFunction);
+			break;
+		default:
+			UE_LOG(LogTemp, Warning, TEXT("Unhandled Return Type."));
+		}
+
+		GetWorld()->GetTimerManager().SetTimer(UnusedHandle, TimerDel, TimeLimit, false);
+	}
+
 	if (!PlayerController->IsLookInputIgnored())
 	{
 		PlayerController->SetIgnoreLookInput(true);
-		UE_LOG(LogTemp, Warning, TEXT("Look input locked"));
 	}
 
 	double OldViewTargetRotYaw = PlayerController->GetViewTarget()->GetActorRotation().Yaw;
 
-	PlayerController->SetViewTargetWithBlend(NewPoint, BlendTime);
+	PlayerController->SetViewTargetWithBlend(NewPoint, BlendTime, BlendFunction);
 
 	double NewViewTargetRotYaw = PlayerController->GetViewTarget()->GetActorRotation().Yaw;
 
-	// It looks like NewViewTargetRotYaw - OldViewTargetRotYaw just works? @TODO THE MATHS DOES NOT WORK!
+	// It looks like NewViewTargetRotYaw - OldViewTargetRotYaw just works? @TODO THE MATHS DOES NOT WORK! The Maths works!
 	FRotator NewControlRotation = FRotator(PlayerController->GetControlRotation().Pitch, /*PlayerController->GetControlRotation().Yaw*/ NewViewTargetRotYaw, PlayerController->GetControlRotation().Roll);
 	PlayerController->SetControlRotation(NewControlRotation);
 
+	
 }
 
 void UStickyCamComponent::SetupCheck()

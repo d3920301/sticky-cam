@@ -41,7 +41,7 @@ void AStickyCamVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 	if (OtherActor->IsA(ClassToEffect) && OtherActor->FindComponentByClass<UStickyCamComponent>() && CameraPoint != nullptr)
 	{
 		UStickyCamComponent* StickyCamComponent = OtherActor->FindComponentByClass<UStickyCamComponent>();
-		StickyCamComponent->SetNewPoint(CameraPoint, BlendTimeTo, BlendFunction);
+		StickyCamComponent->SetNewPoint(CameraPoint, ReturnType, TimeLimit, BlendTimeTo, BlendFunction);
 	}
 }
 
@@ -67,7 +67,7 @@ void AStickyCamVolume::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 			}
 			else
 			{
-				OtherActor->FindComponentByClass<UStickyCamComponent>()->SetNewPoint(OtherActor->FindComponentByClass<UStickyCamComponent>()->LastPoint, BlendTimeFrom, BlendFunction);
+				OtherActor->FindComponentByClass<UStickyCamComponent>()->SetNewPoint(OtherActor->FindComponentByClass<UStickyCamComponent>()->LastPoint, ReturnType, 0, BlendTimeFrom, BlendFunction);
 				OtherActor->FindComponentByClass<UStickyCamComponent>()->LastPoint = CameraPoint;
 			}
 			break;
@@ -79,7 +79,7 @@ void AStickyCamVolume::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 			}
 			else
 			{
-				OtherActor->FindComponentByClass<UStickyCamComponent>()->SetNewPoint(OtherActor->FindComponentByClass<UStickyCamComponent>()->LastPoint, BlendTimeFrom, BlendFunction);
+				OtherActor->FindComponentByClass<UStickyCamComponent>()->SetNewPoint(OtherActor->FindComponentByClass<UStickyCamComponent>()->LastPoint, ReturnType, 0, BlendTimeFrom, BlendFunction);
 			}
 			break;
 		case EReturnType::FollowCam:

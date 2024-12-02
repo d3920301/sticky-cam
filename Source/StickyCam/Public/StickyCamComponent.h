@@ -5,12 +5,24 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include <GameFramework/SpringArmComponent.h>
 #include "Kismet/GameplayStatics.h"
 #include "StickyCamPoint.h"
+#include "TimerManager.h"
 #include "StickyCamComponent.generated.h"
 
+UENUM()
+enum EReturnType
+{
+	None                UMETA(DisplayName = "Don't Change Camera"),
+	TransientNone       UMETA(DisplayName = "Don't Change Camera - Don't Save Current Camera"),
+	LastCam             UMETA(DisplayName = "Go To Last Camera"),
+	TransientLastCam    UMETA(DisplayName = "Go To Last Cam - Don't Save Current Camera"),
+	FollowCam	        UMETA(DisplayName = "Player's Follow Camera"),
+	TransientFollowCam	UMETA(DisplayName = "Player's Follow Camera - Don't Save Current Camera")
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable )
 class STICKYCAM_API UStickyCamComponent : public UActorComponent
@@ -35,17 +47,24 @@ public:
 	// StickyCam
 	AStickyCamPoint* LastPoint;
 
+	// This is used for time limited points
+	AStickyCamPoint* TempPointStorage;
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+	// Internal only
+	void SetNewPointAfterSetTime(AStickyCamPoint* NewPoint, bool bIsTransient, EReturnType ReturnType, float BlendTime, EViewTargetBlendFunction BlendFunction);
+
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void SetCamCompAsActiveCam(float BlendTime = 0, EViewTargetBlendFunction BlendFunction = VTBlend_Linear);
-	void SetNewPoint(AStickyCamPoint* NewPoint, float BlendTime = 0, EViewTargetBlendFunction BlendFunction = VTBlend_Linear);
+	UFUNCTION(BlueprintCallable, Category = "Sticky Cam")
+	void SetCamCompAsActiveCam(float BlendTime, EViewTargetBlendFunction BlendFunction);
+	UFUNCTION(BlueprintCallable, Category = "Sticky Cam")
+	void SetNewPoint(AStickyCamPoint* NewPoint, EReturnType ReturnType, float TimeLimit, float BlendTime, EViewTargetBlendFunction BlendFunction);
 
 private:
 	void SetupCheck();

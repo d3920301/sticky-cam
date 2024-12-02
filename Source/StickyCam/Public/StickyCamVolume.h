@@ -11,17 +11,6 @@
 #include "StickyCamPoint.h"
 #include "StickyCamVolume.generated.h"
 
-UENUM()
-enum EReturnType
-{
-	None                UMETA(DisplayName = "No Return Camera"),
-	TransientNone       UMETA(DisplayName = "Camera Not Saved - No Return Camera"),
-	LastCam             UMETA(DisplayName = "Last Camera"),
-	TransientLastCam    UMETA(DisplayName = "Camera Not Saved - Return to Last Cam"),
-	FollowCam	        UMETA(DisplayName = "Follow Camera"),
-	TransientFollowCam	UMETA(DisplayName = "Camera Not Saved - Return to Follow Camera")
-};
-
 UCLASS()
 class STICKYCAM_API AStickyCamVolume : public AActor
 {
@@ -33,6 +22,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "StickyCam")
 	AStickyCamPoint* CameraPoint;
+	UPROPERTY(EditAnywhere, Category = "StickyCam")
+	float TimeLimit;
 	// Blend
 	UPROPERTY(EditAnywhere, Category = "StickyCam")
 	float BlendTimeTo;
